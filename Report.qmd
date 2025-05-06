@@ -1,0 +1,241 @@
+---
+title: "Investigating the Impact of Demographic and Socio-Economic Factors on Health Insurance Charges"
+author: "Tasnim Ara Siddique"
+format: pdf
+editor: visual
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.height = 3, fig.width = 6)
+options(scipen = 999)
+library(tidyverse)
+library(knitr)
+library(corrplot)
+library(gridExtra)
+library(GGally)
+```
+
+**INTRODUCTION**
+
+The cost of health insurance is a significant financial consideration for individuals, making it essential to understand the factors that influence premium rates. This study seeks to determine how demographic and socio-economic variables—specifically smoking status, age,number of children and BMI—affect health insurance charges, focusing on their predictive power in determining costs. This question is vital for individuals aiming to manage their healthcare expenses, as well as for insurers and policymakers working to ensure fair and affordable access to health insurance. Previous studies and anecdotal evidence suggest that smoking, being a known health risk, age, often linked to increased medical needs, BMI, a potential indicator of chronic conditions,and the number of children, reflecting dependent-related costs, are influential factors in setting premium rates. My hypothesis is that these variables have a significant and measurable impact on insurance costs, with smoking status and BMI showing stronger correlations than age and number of children. Through statistical modeling, this research aims to uncover these relationships, offering actionable insights for consumers and contributing to the ongoing conversation about equity in healthcare pricing.
+
+**DATA**
+
+The dataset contains the following columns related to health insurance charges:
+
+-   **age**: Age of the individual
+
+-   **sex**: Gender of the individual
+
+-   **bmi**: Body Mass Index, an indicator of health based on weight and height
+
+-   **children**: Number of dependent children covered by insurance
+
+-   **smoker**: Whether the individual is a smoker or not
+
+-   **region**: Geographic region within the dataset
+
+-   **charges**: Annual health insurance charges
+
+Next, I’ll create two graphs and one table. Likely visualizations include a scatter plot for age and charges, a box plot for smoking status and charges, and a summary table for average charges by smoking status and other key variables.
+
+```{r, echo = FALSE}
+insurance_data <- read.csv("insurance.csv")
+
+```
+
+```{r, echo = FALSE}
+ggplot(insurance_data, aes(x = age, y = charges, color = smoker)) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Figure 1: Health Insurance Charges by Age and Smoking Status",
+       x = "Age",
+       y = "Insurance Charges",
+       color = "Smoker") +
+  theme_minimal()
+```
+
+```{r, echo = FALSE}
+ggplot(insurance_data, aes(x = smoker, y = charges, fill = smoker)) +
+  geom_boxplot() +
+  labs(title = "Figure 2: Health Insurance Charges by Smoking Status",
+       x = "Smoking Status",
+       y = "Insurance Charges") +
+  scale_fill_manual(values = c("no" = "lightblue", "yes" = "salmon")) +
+  theme_minimal()
+
+```
+
+```{r, echo = FALSE}
+ggplot(insurance_data, aes(x = bmi, y = charges, color = smoker)) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Figure 3: Health Insurance Charges by BMI and Smoking Status",
+       x = "BMI",
+       y = "Insurance Charges",
+       color = "Smoker") +
+  theme_minimal()
+
+```
+
+```{r, echo = FALSE}
+ggplot(insurance_data, aes(x = factor(children), y = charges, fill = smoker)) +
+  geom_boxplot() +
+  labs(title = "Figure 4: Health Insurance Charges by Number of Children and Smoking Status",
+       x = "Number of Children",
+       y = "Insurance Charges",
+       fill = "Smoker") +
+  scale_fill_manual(values = c("no" = "lightblue", "yes" = "salmon")) +
+  theme_minimal()
+
+```
+
+```{r, echo = FALSE}
+insurance_data <- insurance_data %>%
+  mutate(age_group = cut(age, breaks = seq(20, 65, by = 5), 
+                         labels = c("20-24", "25-29", "30-34", "35-39", 
+                                    "40-44", "45-49", "50-54", "55-59", "60-64"), 
+                         right = FALSE))
+summary_table <- insurance_data %>%
+  group_by(age_group, smoker, children) %>%
+  summarise(Average_BMI = mean(bmi, na.rm = TRUE),
+            Average_Insurance_Charges = mean(charges, na.rm = TRUE)) %>%
+  arrange(age_group, smoker, children)
+
+print(summary_table)
+
+
+```
+
+The visualizations and the summary table provide key insights into how different factors influence health insurance charges. Figure 1 demonstrates a positive correlation between age and insurance charges, with smokers consistently incurring higher costs than non-smokers across all age groups. Figure 2 further supports this finding, showing that smokers have significantly higher median charges compared to non-smokers, with a wider range of variability. Figure 3 highlights the impact of BMI, revealing that higher BMI values are associated with increased charges, especially for smokers. Figure 4 explores the role of the number of children, indicating a slight increase in charges as the number of dependents rises, though smoking remains a dominant factor influencing costs. The summary table aggregates these relationships by age groups, smoking status, and number of children, showing clear trends in average charges and BMI. Together, these visualizations and the table emphasize that smoking status, age, and BMI are the most influential factors, while the number of children has a more modest effect. These insights underscore the complexity of predicting insurance costs and the importance of considering multiple factors in pricing strategies.
+
+**MODEL**
+
+The variables chosen for the model—age, smoker, BMI, and children—were selected based on their relevance to the research question and their expected impact on health insurance charges. Age and smoking status are known to significantly influence costs due to their correlation with healthcare needs and health risks. BMI was included as it reflects an individual’s overall health status, and the number of children was added to account for the costs of insuring dependents. These variables together provide a comprehensive picture of the key demographic and socio-economic factors influencing insurance charges.
+
+I chose to exclude gender and region because they are not central to the research question. Gender does not provide actionable insights for insurance pricing in this context, and region reflects geographical differences rather than individual characteristics. In the second model, an interaction term between age and smoker was introduced to assess whether the effect of age on charges differs for smokers and non-smokers. For example, older smokers may experience significantly higher health risks and insurance costs compared to older non-smokers, making this interaction critical to understanding the nuanced relationship between these variables.
+
+**Model without Interaction term**
+
+charges=β0​+β1​⋅age+β2​⋅smoker+β3​⋅bmi+β4​⋅children+ϵ
+
+```{r, echo = FALSE}
+Model_1 <- lm(charges~ age+ smoker+bmi+children, data = insurance_data)
+summary(Model_1)
+```
+
+**Model with Interaction term**
+
+charges=β0​+β1​⋅age+β2​⋅smoker+β3​⋅bmi+β4​⋅children+β5​⋅(age⋅smoker)+ϵ
+
+```{r, echo = FALSE}
+model_2 <- lm(charges ~ age * smoker + bmi + children, data = insurance_data)
+summary(model_2)
+```
+
+In Model 2, the interaction term between age and smoking status (age:smokeryes) has a p-value of 0.29734, which is very large. So we have don't have enough evidence to say that there is a relationship between charges and the rate at which charges increase with age does not differ significantly between smokers and non-smokers. Since the interaction term is not significant, it does not add much explanatory power to the model. Again, the R-squared values are nearly identical, meaning that adding the interaction term does not notably improve the model’s explanatory power.
+
+Model 1 (without the interaction term) is the better choice for this case. This model is simpler, avoids unnecessary complexity, and still explains a substantial portion of the variance in charges using only the main effects of age, smoking status, BMI, and number of children.
+
+Now we use residual plots to assess model assumptions.
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+# Create a data frame with residuals and fitted values from Model_1
+residuals_data <- data.frame(
+  Fitted = Model_1$fitted.values,
+  Residuals = Model_1$residuals
+)
+
+# Plot 1: Residuals vs Fitted Values
+P1 <- ggplot(data = residuals_data, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  ggtitle("Residual Plot") +
+  xlab("Predicted Values") +
+  ylab("Residuals")
+
+# Plot 2: Histogram of Residuals
+P2 <- ggplot(data = residuals_data, aes(x = Residuals)) +
+  geom_histogram(bins = 30, color = "black", fill = "lightblue") +
+  ggtitle("Histogram of Residuals") +
+  xlab("Residuals")
+
+# Plot 3: QQ Plot of Residuals
+P3 <- ggplot(data = residuals_data, aes(sample = scale(Residuals))) +
+  stat_qq() +
+  stat_qq_line() +
+  xlab("Theoretical Quantiles") +
+  ylab("Sample Quantiles") +
+  ggtitle("QQ Plot")
+
+P1
+P2
+P3
+
+```
+
+In the QQ plot for the first model, we observe significant departures from the diagonal line, indicating a violation of the normality assumption for the residuals. This suggests that the distribution of the response variable, `charges`, is skewed. A log transformation can help address this issue by stabilizing the variance and making the data more symmetric, which improves the adherence to the normality assumption and ensures the validity of statistical inferences drawn from the model.
+
+```{r}
+
+insurance_data$log_charges <- log(insurance_data$charges)
+log_model <- lm(log_charges ~ age + smoker + bmi + children, data = insurance_data)
+summary(log_model)
+
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+# Create a data frame with residuals and fitted values from the log-transformed model
+log_residuals_data <- data.frame(
+  Fitted = log_model$fitted.values,
+  Residuals = log_model$residuals
+)
+
+# Plot 1: Residuals vs Fitted Values
+P1 <- ggplot(data = log_residuals_data, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  ggtitle("Residual Plot (Log-Transformed Model)") +
+  xlab("Predicted Log(Charges)") +
+  ylab("Residuals")
+
+# Plot 2: Histogram of Residuals
+P2 <- ggplot(data = log_residuals_data, aes(x = Residuals)) +
+  geom_histogram(bins = 30, color = "black", fill = "lightblue") +
+  ggtitle("Histogram of Residuals (Log-Transformed Model)") +
+  xlab("Residuals")
+
+# Plot 3: QQ Plot of Residuals
+P3 <- ggplot(data = log_residuals_data, aes(sample = scale(Residuals))) +
+  stat_qq() +
+  stat_qq_line() +
+  xlab("Theoretical Quantiles") +
+  ylab("Sample Quantiles") +
+  ggtitle("QQ Plot (Log-Transformed Model)")
+
+P1
+P2
+P3
+```
+
+While exploring the relationship between demographic and health factors and insurance charges, I attempted various transformations, to improve the normality of residuals. In this analysis, I selected two models to compare to predict insurance charges: a linear model with charges as the outcome variable and a log-transformed model with log(charges) as the outcome. I am selecting the log-transformed model as the preferred model, as it provided a better fit, with a higher adjusted R-squared (77.9%) and a lower residual standard error (0.4338). Furthermore, the log-transformed coefficients offer a more intuitive interpretation, representing percentage changes in charges, which aligns well with understanding the proportional impact of predictors.
+
+However, despite the log transformation, the QQ plot for the log-transformed model's residuals indicates deviations from normality at the tails. This suggests that the residuals are affected by extreme values in the data, especially for high insurance charges. Although the log transformation partially mitigated the skewness, fully addressing this issue would require more advanced modeling approaches beyond the scope of this analysis. Consequently, this deviation from normality is acknowledged as a limitation of the model, and interpretations of the model should be made with caution, particularly for extreme values.
+
+**RESULTS**
+
+For enhancing interpretation, I am including the 95% confnidence interval.
+
+```{r}
+confint(Model_1)
+```
+
+The analysis reveals that several demographic and lifestyle factors significantly influence health insurance charges. Smoking status (smokeryes) has the most substantial impact, with smokers expected to pay approximately 153.2% more in charges than non-smokers. This finding is highly significant (p \< 0.0000000000000002), underscoring the financial burden of smoking on healthcare costs. The associated coefficient for smoking is 23,785.39, and the confidence interval \[22,855.52, 24,715.26\] indicates that this effect is both large and precisely estimated. This aligns with the well-documented health risks of smoking and suggests that insurers might consider targeted policies for smokers, while policymakers could leverage this information to justify investments in smoking cessation programs.
+
+Age and BMI also exhibit significant positive relationships with insurance charges. For every additional year of age, charges increase by an average of 266.07 (p \< 0.0000000000000002), with a confidence interval \[239.79, 292.35\], reflecting the growing healthcare needs of older individuals. Similarly, each unit increase in BMI results in a 319.41 rise in charges (p \< 0.000003), with a confidence interval \[257.91, 380.92\], highlighting the increased risks associated with higher BMI. The number of children also contributes to charges, with each additional child increasing costs by \$414.36 on average (p \< 0.0000000000000002), and the confidence interval \[106.08, 722.64\] reflects some variability in this effect, potentially due to differences in family insurance coverage plans. These results emphasize smoking status, age, BMI, and the number of children as key predictors of insurance charges, with smoking showing the strongest and most consistent effect.
+
+**CONCLUSION**
+
+In conclusion, this analysis highlights the significant roles of smoking status, age, BMI, and family size in determining health insurance charges, with smoking status emerging as the most influential predictor. Smokers face markedly higher costs, consistent with prior research linking smoking to elevated health risks and medical expenses. The positive contributions of age and BMI align with expectations, reflecting the rising healthcare needs of older individuals and the health implications of higher BMI. Family size also plays a role, with larger families incurring greater charges due to increased resource utilization. However, the presence of high insurance charges that skew the residuals, even after transformations, raises concerns about the model's ability to fully capture extreme values. These outliers may impact the reliability of predictions by disproportionately influencing the estimates. Future studies could explore more advanced modeling techniques to address this limitation and further refine our understanding of these relationships. Despite these limitations, these results emphasize the importance of health-related factors, especially smoking, in shaping insurance costs, suggesting that public health interventions targeting smoking cessation could have meaningful financial as well as health benefits.
