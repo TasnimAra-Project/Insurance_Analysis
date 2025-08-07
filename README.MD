@@ -3,6 +3,12 @@
 This project investigates how **demographic and socio-economic factors** affect individual health insurance charges. The analysis focuses on the predictive power of features like age, BMI, smoking status, and number of children in determining insurance premiums.
 
 ---
+## 🧠 Built With
+
+- Quarto (.qmd)
+- Language: **R**
+
+![R](https://img.shields.io/badge/Language-R-blue.svg)
 
 ## 🎯 Objective
 
